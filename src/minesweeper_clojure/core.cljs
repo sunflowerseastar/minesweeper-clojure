@@ -1,11 +1,10 @@
 (ns ^:figwheel-hooks minesweeper-clojure.core
   (:require
    [goog.dom :as gdom]
-   [reagent.core :as reagent :refer [atom]]
+   [reagent.core :as reagent :refer [atom create-class]]
    [reagent.dom :as rdom]))
 
-(def dims (atom {:x-dim 4 :y-dim 4}))
-(def difficulty (atom 6)) ;; there will be 1 bomb per <difficulty> squares
+;; state creation helpers
 
 (defn gen-bombs
   "Create a vec of 'bombs', eg. [0 0 1 0] for a 2x2 grid with '4' difficulty (viz. '1 in 4')"
@@ -45,13 +44,45 @@
           bombs-vec)
          vec)))
 
-(defn hello-world []
-  [:div "hi"])
+;; state
+
+(def has-initially-loaded (atom false))
+(def dims (atom {:x-dim 4 :y-dim 4}))
+(def difficulty (atom 6)) ;; there will be 1 bomb per <difficulty> squares
+(def board (atom (gen-board (:x-dim @dims) (:y-dim @dims) @difficulty)))
+
+(defn reveal! [i]
+  (do
+    (swap! board assoc-in [i :is-revealed] true)))
+
+(defn main []
+  (create-class
+   {:component-did-mount
+    (fn [] (js/setTimeout #(reset! has-initially-loaded true) 0))
+    :reagent-render
+    (fn [this]
+      [:div.main {:class (if @has-initially-loaded "has-initially-loaded")}
+       [:div.board-container
+
+        [:div.board.constrain-width
+         [:div.board-inner {:style {:grid-template-columns (repeat (:y-dim @dims) "1fr")}}
+          (map-indexed
+           (fn [i {:keys [is-bomb num-adjacent-bombs is-revealed]}]
+             ^{:key (str i)}
+             [:a.square
+              {:on-click #(reveal! i)}
+              (if
+               is-revealed (if (zero? is-bomb) num-adjacent-bombs "X")
+               (str "-"))])
+
+           @board)
+          [:div.board-horizontal-lines " "]
+          [:div.board-vertical-lines " "]]]]])}))
 
 (defn get-app-element []
   (gdom/getElement "app"))
 (defn mount [el]
-  (rdom/render [hello-world] el))
+  (rdom/render [main] el))
 (defn mount-app-element []
   (when-let [el (get-app-element)]
     (mount el)))

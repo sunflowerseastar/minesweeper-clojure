@@ -1,2 +1,93 @@
-/* some style */
-
+body {
+  position: fixed;
+  width: 100%;
+  margin: 0;
+  font-family: 'iosevka ss05', Menlo, 'Andale Mono', monospace;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+}
+#app {
+  height: 100vh;
+}
+.main {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 1.6s ease-in-out;
+}
+.main.has-initially-loaded {
+  opacity: 1;
+}
+.board-container {
+  width: 90vw;
+  margin: 0 auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+@media (min-width: 768px) {
+  .board-container {
+    padding: 1em 0;
+  }
+}
+.board {
+  position: relative;
+  width: 100%;
+  margin: 0 auto;
+  text-align: center;
+  border: 2px solid #222;
+}
+.board-inner {
+  position: relative;
+  left: 0;
+  top: 0;
+  width: 100%;
+  margin: 0 auto;
+  display: grid;
+  grid-gap: 1px;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  background: #ccc;
+  text-align: center;
+}
+.constrain-width {
+  width: 100%;
+  margin: 0 auto;
+}
+@media (min-width: 480px) {
+  .constrain-width {
+    width: 80%;
+  }
+}
+@media (min-width: 768px) {
+  .constrain-width {
+    width: 70%;
+  }
+}
+@media (min-width: 768px) {
+  .constrain-width {
+    width: 62vh;
+  }
+}
+.square {
+  position: relative;
+  height: 0;
+  padding-bottom: 100%;
+  background: white;
+}
+.is-dimmed {
+  opacity: 0.5;
+}
+.is-disabled {
+  opacity: 0.3;
+  pointer-events: none;
+  cursor: default;
+}
+.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
