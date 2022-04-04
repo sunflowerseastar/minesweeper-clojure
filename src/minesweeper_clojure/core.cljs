@@ -59,79 +59,103 @@
   e.g. [{:i 0 :is-flag false :is-mine true :is-revealed false :num-adjacent-mines 1} ... ]"
   [x-dim y-dim difficulty]
   (let [mines-vec (gen-mines x-dim y-dim difficulty)]
-    (do
-      (println "bv: " mines-vec)
-      (->> (map-indexed
-            (fn [i x] {:is-flag false
-                       :is-mine x
-                       :num-adjacent-mines (num-adjacent-mines i mines-vec x-dim y-dim)
-                       :is-revealed false})
-            mines-vec)
-           vec))))
+    (->> (map-indexed
+          (fn [i x] {:is-flag false
+                     :is-mine x
+                     :num-adjacent-mines (num-adjacent-mines i mines-vec x-dim y-dim)
+                     :is-revealed false})
+          mines-vec)
+         vec)))
 
 ;; state
 
 (def has-initially-loaded (atom false))
-(def dims (atom {:x-dim 2 :y-dim 2}))
+(def dims (atom {:x-dim 10 :y-dim 10}))
 (def difficulty (atom 6)) ;; there will be 1 mine per <difficulty> squares
 (def board (atom (gen-board (:x-dim @dims) (:y-dim @dims) @difficulty)))
+(def is-game-active (atom true))
 
 (defn toggle-flag!
   "Add or remove a flag on a square."
   [i]
   (swap! board update-in [i :is-flag] not))
 
+(defn start-game!
+  "Reset board and permit gameplay."
+  []
+  (do (reset! is-game-active true)
+      (reset! board (gen-board (:x-dim @dims) (:y-dim @dims) @difficulty))))
+
+;; TODO add timer
+;; TODO add happy face
+
+(defn game-over!
+  "Reveal mines, end gameplay."
+  []
+  ;; TODO reveal all mines
+  ;; TODO color the game-ending square red
+  ;; TODO show incorrect flags
+  (reset! is-game-active false))
+
 (defn reveal!
-  "Reveal what's under the square:
-  - blank (and then recursively reveal! the blank adjacent left/right/top/bottom squares)
-  - the number of adjacent mines
-  - a mine (TODO game over)"
+  "Reveal what's under the square, then conditionally (1) end game or
+  (2) recursively reveal! the blank adjacent left/right/top/bottom squares."
   [i]
   (let [x-dim (:x-dim @dims) y-dim (:y-dim @dims)
         {:keys [left-i right-i top-i bottom-i]} (neighbor-indices i x-dim y-dim)
         {:keys [is-mine num-adjacent-mines]} (@board i)]
     (do
       (swap! board assoc-in [i :is-revealed] true)
-      (when (and (zero? is-mine) (zero? num-adjacent-mines))
-        (when (not (nil? left-i))
-          (let [{:keys [is-revealed is-mine num-adjacent-mines]} (@board left-i)]
-            (when (and (zero? is-mine) (false? is-revealed) (zero? num-adjacent-mines)) (reveal! left-i))))
-        (when (not (nil? right-i))
-          (let [{:keys [is-revealed is-mine num-adjacent-mines]} (@board right-i)]
-            (when (and (zero? is-mine) (false? is-revealed) (zero? num-adjacent-mines)) (reveal! right-i))))
-        (when (not (nil? top-i))
-          (let [{:keys [is-revealed is-mine num-adjacent-mines]} (@board top-i)]
-            (when (and (zero? is-mine) (false? is-revealed) (zero? num-adjacent-mines)) (reveal! top-i))))
-        (when (not (nil? bottom-i))
-          (let [{:keys [is-revealed is-mine num-adjacent-mines]} (@board bottom-i)]
-            (when (and (zero? is-mine) (false? is-revealed) (zero? num-adjacent-mines)) (reveal! bottom-i))))))))
+      (cond (pos? is-mine) (game-over!) ;; (1) end game
+            (and (zero? is-mine) (zero? num-adjacent-mines)) ;; (2) recursively reveal! the blank adjacent left/right/top/bottom squares
+            (do
+              (when (not (nil? left-i))
+                (let [{:keys [is-revealed is-mine num-adjacent-mines]} (@board left-i)]
+                  (when (and (zero? is-mine) (false? is-revealed) (zero? num-adjacent-mines)) (reveal! left-i))))
+              (when (not (nil? right-i))
+                (let [{:keys [is-revealed is-mine num-adjacent-mines]} (@board right-i)]
+                  (when (and (zero? is-mine) (false? is-revealed) (zero? num-adjacent-mines)) (reveal! right-i))))
+              (when (not (nil? top-i))
+                (let [{:keys [is-revealed is-mine num-adjacent-mines]} (@board top-i)]
+                  (when (and (zero? is-mine) (false? is-revealed) (zero? num-adjacent-mines)) (reveal! top-i))))
+              (when (not (nil? bottom-i))
+                (let [{:keys [is-revealed is-mine num-adjacent-mines]} (@board bottom-i)]
+                  (when (and (zero? is-mine) (false? is-revealed) (zero? num-adjacent-mines)) (reveal! bottom-i)))))))))
 
 (defn main []
-  (create-class
-   {:component-did-mount
-    (fn [] (do
-             (.addEventListener js/window "contextmenu" #(.preventDefault %))
-             (js/setTimeout #(reset! has-initially-loaded true) 0)))
-    :reagent-render
-    (fn [this]
-      [:div.main {:class (if @has-initially-loaded "has-initially-loaded")}
-       [:div.board-container
-        [:div.board.constrain-width
-         [:div.board-inner {:style {:grid-template-columns (join " " (repeat (:x-dim @dims) "1fr"))}}
-          (map-indexed
-           (fn [i {:keys [is-flag is-mine is-revealed num-adjacent-mines]}]
-             ^{:key (str i)}
-             [:a.square
-              {:class [(when is-revealed "is-revealed") (when is-flag "is-flag")]
-               :on-click #(reveal! i)
-               :on-context-menu #(toggle-flag! i)}
-              [:span.square-inner
-               (cond is-revealed (if (not (zero? is-mine)) (svg 'mine)
-                                     (when (not (zero? num-adjacent-mines)) num-adjacent-mines))
-                     is-flag (svg 'flag))]])
-           @board)
-          [:div.board-horizontal-lines " "]
-          [:div.board-vertical-lines " "]]]]])}))
+  (letfn [(keyboard-listeners [e]
+            (let [is-r (= (.-keyCode e) 82)]
+              (when is-r (start-game!))))]
+    (create-class
+     {:component-did-mount
+      (fn [] (do
+               (.addEventListener js/window "contextmenu" #(.preventDefault %))
+               (.addEventListener js/document "keydown" keyboard-listeners)
+               (js/setTimeout #(reset! has-initially-loaded true) 0)))
+      :reagent-render
+      (fn [this]
+        [:div.main {:class (if @has-initially-loaded "has-initially-loaded")}
+         [:div.board-container
+          [:div.board.constrain-width
+           [:div.board-inner {:style {:grid-template-columns (join " " (repeat (:x-dim @dims) "1fr"))}
+                              ;; :on-click #(when (not @is-game-active) (start-game!))
+                              }
+            (doall (map-indexed
+                    (fn [i {:keys [is-flag is-mine is-revealed num-adjacent-mines]}]
+                      ^{:key (str i)}
+                      [:a.square
+                       {:class [(when (not @is-game-active) "pointer-events-none")
+                                (when is-revealed "is-revealed")
+                                (when is-flag "is-flag")]
+                        :on-click #(reveal! i)
+                        :on-context-menu #(toggle-flag! i)}
+                       [:span.square-inner
+                        (cond is-revealed (if (not (zero? is-mine)) (svg 'mine)
+                                              (when (not (zero? num-adjacent-mines)) num-adjacent-mines))
+                              is-flag (svg 'flag))]])
+                    @board))
+            [:div.board-horizontal-lines " "]
+            [:div.board-vertical-lines " "]]]]])})))
 
 (defn get-app-element []
   (gdom/getElement "app"))

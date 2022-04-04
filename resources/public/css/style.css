@@ -1,3 +1,4 @@
+/* TODO make non-revealed squares 3D */
 body {
   position: fixed;
   width: 100%;
@@ -102,5 +103,8 @@ body {
 }
 .is-hidden {
   opacity: 0;
+  pointer-events: none;
+}
+.pointer-events-none {
   pointer-events: none;
 }
