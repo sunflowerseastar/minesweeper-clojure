@@ -70,10 +70,11 @@
            (fn [i {:keys [is-bomb num-adjacent-bombs is-revealed]}]
              ^{:key (str i)}
              [:a.square
-              {:on-click #(reveal! i)}
-              (if
-               is-revealed (if (zero? is-bomb) num-adjacent-bombs "X")
-               (str "-"))])
+              {:class (when is-revealed "is-revealed")
+               :on-click #(reveal! i)}
+              [:span.square-inner
+               (when is-revealed (if (not (zero? is-bomb)) "X"
+                                     (when (not (zero? num-adjacent-bombs)) num-adjacent-bombs)))]])
 
            @board)
           [:div.board-horizontal-lines " "]

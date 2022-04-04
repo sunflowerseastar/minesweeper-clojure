@@ -74,10 +74,20 @@ body {
   }
 }
 .square {
+  display: block;
   position: relative;
   height: 0;
   padding-bottom: 100%;
+  background: #eee;
+}
+.square.is-revealed {
   background: white;
+}
+.square-inner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translateY(-50%) translateX(-50%);
 }
 .is-dimmed {
   opacity: 0.5;
