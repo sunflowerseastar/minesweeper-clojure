@@ -2,6 +2,7 @@
   (:require
    [clojure.string :refer [join]]
    [goog.dom :as gdom]
+   [minesweeper-clojure.svgs :refer [svg]]
    [reagent.core :as reagent :refer [atom create-class]]
    [reagent.dom :as rdom]))
 
@@ -108,7 +109,7 @@
               {:class (when is-revealed "is-revealed")
                :on-click #(reveal! i)}
               [:span.square-inner
-               (when is-revealed (if (not (zero? is-bomb)) "X"
+               (when is-revealed (if (not (zero? is-bomb)) (svg 'mine)
                                      (when (not (zero? num-adjacent-bombs)) num-adjacent-bombs)))]])
            @board)
           [:div.board-horizontal-lines " "]
