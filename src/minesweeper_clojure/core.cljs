@@ -12,7 +12,7 @@
   "Create a vec of 'mines', eg. [0 0 1 0] for a 2x2 grid with '4' difficulty (viz. '1 in 4')"
   [x-dim y-dim difficulty]
   (let [num-squares (* x-dim y-dim)
-        num-mines (quot num-squares difficulty)]
+        num-mines (max (quot num-squares difficulty) 1)]
     (->> (concat (repeat num-mines 1) (repeat (- num-squares num-mines) 0))
          shuffle)))
 
