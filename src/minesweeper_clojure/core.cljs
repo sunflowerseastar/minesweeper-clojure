@@ -1,5 +1,6 @@
 (ns ^:figwheel-hooks minesweeper-clojure.core
   (:require
+   [clojure.string :refer [join]]
    [goog.dom :as gdom]
    [reagent.core :as reagent :refer [atom create-class]]
    [reagent.dom :as rdom]))
@@ -63,9 +64,8 @@
     (fn [this]
       [:div.main {:class (if @has-initially-loaded "has-initially-loaded")}
        [:div.board-container
-
         [:div.board.constrain-width
-         [:div.board-inner {:style {:grid-template-columns (repeat (:y-dim @dims) "1fr")}}
+         [:div.board-inner {:style {:grid-template-columns (join " " (repeat (:x-dim @dims) "1fr"))}}
           (map-indexed
            (fn [i {:keys [is-bomb num-adjacent-bombs is-revealed]}]
              ^{:key (str i)}
@@ -75,7 +75,6 @@
               [:span.square-inner
                (when is-revealed (if (not (zero? is-bomb)) "X"
                                      (when (not (zero? num-adjacent-bombs)) num-adjacent-bombs)))]])
-
            @board)
           [:div.board-horizontal-lines " "]
           [:div.board-vertical-lines " "]]]]])}))

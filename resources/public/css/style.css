@@ -50,7 +50,6 @@ body {
   margin: 0 auto;
   display: grid;
   grid-gap: 1px;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
   background: #ccc;
   text-align: center;
 }
