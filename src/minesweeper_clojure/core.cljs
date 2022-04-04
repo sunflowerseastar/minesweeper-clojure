@@ -55,24 +55,38 @@
     (reduce + adjacent-mines)))
 
 (defn gen-board
-  "Create a vec of square maps, eg [{:i 0 :is-mine true :is-revealed false :num-adjacent-mines 1} ... ]"
+  "Create a vec of square maps,
+  e.g. [{:i 0 :is-flag false :is-mine true :is-revealed false :num-adjacent-mines 1} ... ]"
   [x-dim y-dim difficulty]
   (let [mines-vec (gen-mines x-dim y-dim difficulty)]
     (do
       (println "bv: " mines-vec)
       (->> (map-indexed
-            (fn [i x] {:is-mine x :num-adjacent-mines (num-adjacent-mines i mines-vec x-dim y-dim) :is-revealed false})
+            (fn [i x] {:is-flag false
+                       :is-mine x
+                       :num-adjacent-mines (num-adjacent-mines i mines-vec x-dim y-dim)
+                       :is-revealed false})
             mines-vec)
            vec))))
 
 ;; state
 
 (def has-initially-loaded (atom false))
-(def dims (atom {:x-dim 10 :y-dim 10}))
+(def dims (atom {:x-dim 2 :y-dim 2}))
 (def difficulty (atom 6)) ;; there will be 1 mine per <difficulty> squares
 (def board (atom (gen-board (:x-dim @dims) (:y-dim @dims) @difficulty)))
 
-(defn reveal! [i]
+(defn toggle-flag!
+  "Add or remove a flag on a square."
+  [i]
+  (swap! board update-in [i :is-flag] not))
+
+(defn reveal!
+  "Reveal what's under the square:
+  - blank (and then recursively reveal! the blank adjacent left/right/top/bottom squares)
+  - the number of adjacent mines
+  - a mine (TODO game over)"
+  [i]
   (let [x-dim (:x-dim @dims) y-dim (:y-dim @dims)
         {:keys [left-i right-i top-i bottom-i]} (neighbor-indices i x-dim y-dim)
         {:keys [is-mine num-adjacent-mines]} (@board i)]
@@ -95,7 +109,9 @@
 (defn main []
   (create-class
    {:component-did-mount
-    (fn [] (js/setTimeout #(reset! has-initially-loaded true) 0))
+    (fn [] (do
+             (.addEventListener js/window "contextmenu" #(.preventDefault %))
+             (js/setTimeout #(reset! has-initially-loaded true) 0)))
     :reagent-render
     (fn [this]
       [:div.main {:class (if @has-initially-loaded "has-initially-loaded")}
@@ -103,14 +119,16 @@
         [:div.board.constrain-width
          [:div.board-inner {:style {:grid-template-columns (join " " (repeat (:x-dim @dims) "1fr"))}}
           (map-indexed
-           (fn [i {:keys [is-mine num-adjacent-mines is-revealed]}]
+           (fn [i {:keys [is-flag is-mine is-revealed num-adjacent-mines]}]
              ^{:key (str i)}
              [:a.square
-              {:class (when is-revealed "is-revealed")
-               :on-click #(reveal! i)}
+              {:class [(when is-revealed "is-revealed") (when is-flag "is-flag")]
+               :on-click #(reveal! i)
+               :on-context-menu #(toggle-flag! i)}
               [:span.square-inner
-               (when is-revealed (if (not (zero? is-mine)) (svg 'mine)
-                                     (when (not (zero? num-adjacent-mines)) num-adjacent-mines)))]])
+               (cond is-revealed (if (not (zero? is-mine)) (svg 'mine)
+                                     (when (not (zero? num-adjacent-mines)) num-adjacent-mines))
+                     is-flag (svg 'flag))]])
            @board)
           [:div.board-horizontal-lines " "]
           [:div.board-vertical-lines " "]]]]])}))
