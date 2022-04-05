@@ -9,10 +9,10 @@
 ;; state creation helpers
 
 (defn gen-mines
-  "Create a vec of 'mines', ex. [0 0 1 0] for a 2x2 grid with num-mines-total = 1"
+  "Create a vec of 'mines', ex. [false false true false] for a 2x2 grid with num-mines-total = 1"
   [x-dim y-dim num-mines-total]
   (let [num-squares (* x-dim y-dim)]
-    (->> (concat (repeat num-mines-total 1) (repeat (- num-squares num-mines-total) 0))
+    (->> (concat (repeat num-mines-total true) (repeat (- num-squares num-mines-total) false))
          shuffle)))
 
 (defn edges
@@ -38,11 +38,14 @@
     (->> [left-i right-i top-i bottom-i top-left-i top-right-i bottom-left-i bottom-right-i]
          (filter #(not (nil? %))))))
 
+(defn bool->int [b] (get {false 0 true 1} b))
+
 (defn num-adjacent-mines
   "Given an index, mines, and dims, determine the number of adjacent mines."
   [i mines x-dim y-dim]
   (->> (adjacent-indices i x-dim y-dim)
        (map #(nth mines %))
+       (map bool->int)
        (reduce +)))
 
 (defn gen-board
@@ -88,8 +91,7 @@
   ;; TODO show incorrect flags
   (do
     (swap! board assoc-in [i :is-mistake] true)
-    (reset! is-game-active false)
-    ))
+    (reset! is-game-active false)))
 
 (defn reveal!
   "Expose contents, then conditionally (1) end game or
@@ -97,16 +99,16 @@
   [i]
   (let [x-dim (:x-dim @dims) y-dim (:y-dim @dims)
         {:keys [is-mine num-adjacent-mines]} (@board i)
-        is-blank (and (zero? is-mine) (zero? num-adjacent-mines))]
+        is-blank (and (false? is-mine) (zero? num-adjacent-mines))]
     (do
       (swap! board assoc-in [i :is-revealed] true)
       (cond
         ;; (1) end game
-        (pos? is-mine) (game-over! i)
+        is-mine (game-over! i)
         ;; (2) recursively reveal adjacent non-mine squares
-        is-blank (doseq [x (adjacent-indices i x-dim y-dim)]
-                   (let [{:keys [is-revealed is-mine num-adjacent-mines]} (@board x)]
-                     (when (false? is-revealed) (reveal! x))))))))
+        is-blank (doseq [adjacent-i (adjacent-indices i x-dim y-dim)]
+                   (let [{:keys [is-revealed is-mine num-adjacent-mines]} (@board adjacent-i)]
+                     (when (false? is-revealed) (reveal! adjacent-i))))))))
 
 (defn main []
   (letfn [(keyboard-listeners [e]
@@ -131,14 +133,14 @@
                       ^{:key (str i)}
                       [:a.square
                        {:class [(when (not @is-game-active) "pointer-events-none")
-                                (when (pos? is-mine) "is-mine")
+                                (when is-mine "is-mine")
                                 (when is-mistake "is-mistake")
                                 (when is-revealed "is-revealed")
                                 (when is-flag "is-flag")]
                         :on-click #(reveal! i)
                         :on-context-menu #(toggle-flag! i)}
                        [:span.square-inner
-                        (cond is-revealed (if (not (zero? is-mine)) (svg 'mine)
+                        (cond is-revealed (if is-mine (svg 'mine)
                                               (when (not (zero? num-adjacent-mines)) num-adjacent-mines))
                               is-flag (svg 'flag))]])
                     @board))

@@ -4,8 +4,8 @@
    [minesweeper-clojure.core :as core]))
 
 (deftest gen-mines-test
-  (is (= (count (core/gen-mines 4 4 3)) 16)) ;; 4x4 grid -> 16 squares
-  (is (= (reduce + (core/gen-mines 4 4 3)) 5))) ;; 1 mine per 3 squares, 4x4 should have 5 mines
+  (is (= (core/gen-mines 2 2 0) [false false false false]))
+  (is (= (core/gen-mines 2 2 4) [true true true true])))
 
 (deftest edges-test
   (is (= (core/edges 0 2 2)) {:is-left-edge true, :is-right-edge false, :is-top-edge true, :is-bottom-edge false})
@@ -16,9 +16,9 @@
   (is (= (core/adjacent-indices 13 10 10) '(12 14 3 23 2 4 22 24))))
 
 (deftest num-adjacent-mines-test
-  (is (= (core/num-adjacent-mines 0 [0 0 0 0] 2 2) 0))
-  (is (= (core/num-adjacent-mines 0 [0 1 1 1] 2 2) 3)))
+  (is (zero? (core/num-adjacent-mines 0 [false false false false] 2 2)))
+  (is (= (core/num-adjacent-mines 0 [false true true true] 2 2) 3)))
 
 (deftest gen-board-test
-  (is (= (-> (core/gen-board 2 2 1) (nth 1) :is-mine) 1))
-  (is (= (-> (core/gen-board 2 2 1) (nth 1) :num-adjacent-mines) 3)))
+  (is (true? (-> (core/gen-board 2 2 4) (nth 1) :is-mine)))
+  (is (= (-> (core/gen-board 2 2 4) (nth 1) :num-adjacent-mines) 3)))
