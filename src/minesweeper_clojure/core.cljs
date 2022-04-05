@@ -56,11 +56,12 @@
   [x-dim y-dim num-mines-total]
   (let [mines-vec (gen-mines x-dim y-dim num-mines-total)]
     (->> (map-indexed
-          (fn [i x] {:is-flag false
+          (fn [i x] {:is-final false
+                     :is-flag false
                      :is-mine x
                      :is-mistake false
-                     :num-adjacent-mines (num-adjacent-mines i mines-vec x-dim y-dim)
-                     :is-revealed false})
+                     :is-revealed false
+                     :num-adjacent-mines (num-adjacent-mines i mines-vec x-dim y-dim)})
           mines-vec)
          vec)))
 
@@ -69,7 +70,7 @@
 ;; TODO add happy face
 
 (def has-initially-loaded (atom false))
-(def dims (atom {:x-dim 25 :y-dim 20}))
+(def dims (atom {:x-dim 20 :y-dim 16}))
 (def num-mines-total (atom 40))
 (def board (atom (gen-board (:x-dim @dims) (:y-dim @dims) @num-mines-total)))
 (def is-game-active (atom true))
@@ -86,34 +87,41 @@
       (reset! board (gen-board (:x-dim @dims) (:y-dim @dims) @num-mines-total))))
 
 (defn game-over-lose!
-  "Mark game-ending mine as the 'mistake' (red), reveal mines, end gameplay."
-  ;; TODO indicate incorrect flags
+  "(1) Mark game-ending mine as 'final' (red), (2) mark incorrect flags as
+  'mistake' (X), (3) reveal mines, (4) end gameplay."
   [i]
   (do
-    (swap! board assoc-in [i :is-mistake] true)
-    (doseq [mine-i (->> @board (keep-indexed #(if (:is-mine %2) %1)))]
+    ;; (1) make the game-ending square turn red (background, via class -> css)
+    (swap! board assoc-in [i :is-final] true)
+    ;; (2) mark incorrect flags
+    (doseq [flag-i (->> @board (keep-indexed #(if (and (:is-flag %2) (not (:is-mine %2))) %1)))]
+      (swap! board assoc-in [flag-i :is-mistake] true))
+    ;; (3) reveal all of the mines on the board
+    (doseq [mine-i (->> @board (keep-indexed #(if (and (:is-mine %2) (not (:is-flag %2))) %1)))]
       (swap! board assoc-in [mine-i :is-revealed] true))
+    ;; (4) end gameplay
     (reset! is-game-active false)))
 
 (defn game-over-win! []
   (do (println "win =)") (reset! is-game-active false)))
 
 (defn reveal!
-  "Expose contents, then conditionally (1) end game due to mine, (2) end game due
-  to a win, or (3) recursively reveal adjacent non-mine squares."
+  "(1) Expose contents, then conditionally (2) end game due to mine, (3) end game
+  due to a win, or (4) recursively reveal adjacent non-mine squares."
   [i]
   (let [x-dim (:x-dim @dims) y-dim (:y-dim @dims)
         {:keys [is-mine num-adjacent-mines]} (@board i)
         is-blank (and (false? is-mine) (zero? num-adjacent-mines))
         num-squares-remaining (->> @board (keep-indexed #(if (not (:is-revealed %2)) %1)) count dec)]
     (do
+      ;; (1) show what's in the square
       (swap! board assoc-in [i :is-revealed] true)
       (cond
-        ;; (1) end game, lose
+        ;; (2) end game, lose
         is-mine (game-over-lose! i)
-        ;; (2) end game, win
+        ;; (3) end game, win
         (= num-squares-remaining @num-mines-total) (game-over-win!)
-        ;; (3) recursively reveal adjacent non-mine squares
+        ;; (4) recursively reveal adjacent non-mine squares
         is-blank (doseq [adjacent-i (adjacent-indices i x-dim y-dim)]
                    (let [{:keys [is-revealed is-mine num-adjacent-mines]} (@board adjacent-i)]
                      (when (false? is-revealed) (reveal! adjacent-i))))))))
@@ -137,14 +145,15 @@
                               ;; :on-click #(when (not @is-game-active) (start-game!))
                               }
             (doall (map-indexed
-                    (fn [i {:keys [is-flag is-mine is-mistake is-revealed num-adjacent-mines]}]
+                    (fn [i {:keys [is-final is-flag is-mine is-mistake is-revealed num-adjacent-mines]}]
                       ^{:key (str i)}
                       [:a.square
                        {:class [(when (not @is-game-active) "pointer-events-none")
+                                (when is-final "is-final")
+                                (when is-flag "is-flag")
                                 (when is-mine "is-mine")
                                 (when is-mistake "is-mistake")
-                                (when is-revealed "is-revealed")
-                                (when is-flag "is-flag")]
+                                (when is-revealed "is-revealed")]
                         :on-click #(reveal! i)
                         :on-context-menu #(toggle-flag! i)}
                        [:span.square-inner

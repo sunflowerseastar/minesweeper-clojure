@@ -79,11 +79,30 @@ body {
   height: 0;
   padding-bottom: 100%;
   background: #eee;
+  overflow: hidden;
 }
 .square.is-revealed {
   background: white;
 }
-.square.is-mine.is-mistake {
+.square.is-flag.is-mistake:before,
+.square.is-flag.is-mistake:after {
+  content: '';
+  position: absolute;
+  width: 160%;
+  height: 2px;
+  background: #999;
+  top: 50%;
+  left: 50%;
+  transform-origin: 0%;
+  z-index: 1;
+}
+.square.is-flag.is-mistake:before {
+  transform: rotate(45deg) translateX(-50%) translateY(-50%);
+}
+.square.is-flag.is-mistake:after {
+  transform: rotate(-45deg) translateX(-50%) translateY(-50%);
+}
+.square.is-mine.is-final {
   background: red;
 }
 .square-inner {
@@ -94,7 +113,7 @@ body {
   transform: translateY(-50%) translateX(-50%);
 }
 .square-inner svg {
-  transform: scale(1.1);
+  transform: scale(1.4);
 }
 .is-dimmed {
   opacity: 0.5;
