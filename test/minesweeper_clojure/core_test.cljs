@@ -15,6 +15,9 @@
   (is (= (core/adjacent-indices 0 2 2) '(1 2 3)))
   (is (= (core/adjacent-indices 13 10 10) '(12 14 3 23 2 4 22 24))))
 
+(deftest bool->int
+  (is (= (map core/bool->int [false false true false]) '(0 0 1 0))))
+
 (deftest num-adjacent-mines-test
   (is (zero? (core/num-adjacent-mines 0 [false false false false] 2 2)))
   (is (= (core/num-adjacent-mines 0 [false true true true] 2 2) 3)))

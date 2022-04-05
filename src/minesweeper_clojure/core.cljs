@@ -38,7 +38,9 @@
     (->> [left-i right-i top-i bottom-i top-left-i top-right-i bottom-left-i bottom-right-i]
          (filter #(not (nil? %))))))
 
-(defn bool->int [b] (get {false 0 true 1} b))
+(defn bool->int
+  "Helper to convert false -> 0 and true -> 0."
+  [b] (get {false 0 true 1} b))
 
 (defn num-adjacent-mines
   "Given an index, mines, and dims, determine the number of adjacent mines."
