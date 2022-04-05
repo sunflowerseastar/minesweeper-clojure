@@ -9,12 +9,11 @@
 ;; state creation helpers
 
 (defn gen-mines
-  "Create a vec of 'mines', ex. [0 0 1 0] for a 2x2 grid with '4' difficulty (viz. '1 in 4')"
-  [x-dim y-dim difficulty]
-  (let [num-squares (* x-dim y-dim)
-        num-mines (max (quot num-squares difficulty) 1)] ;; make sure there's at least 1 mine
-    (->> (concat (repeat num-mines 1) (repeat (- num-squares num-mines) 0)) ;; => ex. [1 0 0 0]
-         shuffle))) ;; => ex. [0 0 1 0]
+  "Create a vec of 'mines', ex. [0 0 1 0] for a 2x2 grid with num-mines-total = 1"
+  [x-dim y-dim num-mines-total]
+  (let [num-squares (* x-dim y-dim)]
+    (->> (concat (repeat num-mines-total 1) (repeat (- num-squares num-mines-total) 0))
+         shuffle)))
 
 (defn edges
   "Given an index and dims, determine if/where it's on the board's border."
@@ -49,8 +48,8 @@
 (defn gen-board
   "Create a vec of square maps,
   e.g. [{:i 0 :is-flag false :is-mine true :is-revealed false :num-adjacent-mines 1} ... ]"
-  [x-dim y-dim difficulty]
-  (let [mines-vec (gen-mines x-dim y-dim difficulty)]
+  [x-dim y-dim num-mines-total]
+  (let [mines-vec (gen-mines x-dim y-dim num-mines-total)]
     (->> (map-indexed
           (fn [i x] {:is-flag false
                      :is-mine x
@@ -64,8 +63,8 @@
 
 (def has-initially-loaded (atom false))
 (def dims (atom {:x-dim 10 :y-dim 10}))
-(def difficulty (atom 10)) ;; there will be 1 mine per <difficulty> squares; TODO change to number-of-mines-total
-(def board (atom (gen-board (:x-dim @dims) (:y-dim @dims) @difficulty)))
+(def num-mines-total (atom 1))
+(def board (atom (gen-board (:x-dim @dims) (:y-dim @dims) @num-mines-total)))
 (def is-game-active (atom true))
 
 (defn toggle-flag!
@@ -77,7 +76,7 @@
   "Reset board and permit gameplay."
   []
   (do (reset! is-game-active true)
-      (reset! board (gen-board (:x-dim @dims) (:y-dim @dims) @difficulty))))
+      (reset! board (gen-board (:x-dim @dims) (:y-dim @dims) @num-mines-total))))
 
 ;; TODO add timer
 ;; TODO add happy face
@@ -89,7 +88,8 @@
   ;; TODO show incorrect flags
   (do
     (swap! board assoc-in [i :is-mistake] true)
-    (reset! is-game-active false)))
+    (reset! is-game-active false)
+    ))
 
 (defn reveal!
   "Expose contents, then conditionally (1) end game or
