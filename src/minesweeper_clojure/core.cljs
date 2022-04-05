@@ -67,8 +67,8 @@
 ;; TODO add happy face
 
 (def has-initially-loaded (atom false))
-(def dims (atom {:x-dim 10 :y-dim 10}))
-(def num-mines-total (atom 10))
+(def dims (atom {:x-dim 25 :y-dim 20}))
+(def num-mines-total (atom 40))
 (def board (atom (gen-board (:x-dim @dims) (:y-dim @dims) @num-mines-total)))
 (def is-game-active (atom true))
 
@@ -83,7 +83,7 @@
   (do (reset! is-game-active true)
       (reset! board (gen-board (:x-dim @dims) (:y-dim @dims) @num-mines-total))))
 
-(defn game-over!
+(defn game-over-lose!
   "Mark game-ending mine as the 'mistake' (red), reveal mines, end gameplay."
   ;; TODO indicate incorrect flags
   [i]
@@ -93,19 +93,25 @@
       (swap! board assoc-in [mine-i :is-revealed] true))
     (reset! is-game-active false)))
 
+(defn game-over-win! []
+  (do (println "win =)") (reset! is-game-active false)))
+
 (defn reveal!
-  "Expose contents, then conditionally (1) end game or
-  (2) recursively reveal adjacent non-mine squares."
+  "Expose contents, then conditionally (1) end game due to mine, (2) end game due
+  to a win, or (3) recursively reveal adjacent non-mine squares."
   [i]
   (let [x-dim (:x-dim @dims) y-dim (:y-dim @dims)
         {:keys [is-mine num-adjacent-mines]} (@board i)
-        is-blank (and (false? is-mine) (zero? num-adjacent-mines))]
+        is-blank (and (false? is-mine) (zero? num-adjacent-mines))
+        num-squares-remaining (->> @board (keep-indexed #(if (not (:is-revealed %2)) %1)) count dec)]
     (do
       (swap! board assoc-in [i :is-revealed] true)
       (cond
-        ;; (1) end game
-        is-mine (game-over! i)
-        ;; (2) recursively reveal adjacent non-mine squares
+        ;; (1) end game, lose
+        is-mine (game-over-lose! i)
+        ;; (2) end game, win
+        (= num-squares-remaining @num-mines-total) (game-over-win!)
+        ;; (3) recursively reveal adjacent non-mine squares
         is-blank (doseq [adjacent-i (adjacent-indices i x-dim y-dim)]
                    (let [{:keys [is-revealed is-mine num-adjacent-mines]} (@board adjacent-i)]
                      (when (false? is-revealed) (reveal! adjacent-i))))))))
