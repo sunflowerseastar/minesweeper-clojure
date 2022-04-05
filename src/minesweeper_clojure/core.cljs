@@ -1,10 +1,10 @@
-(ns ^:figwheel-hooks minesweeper-clojure.core
-  (:require
-   [clojure.string :refer [join]]
-   [goog.dom :as gdom]
-   [minesweeper-clojure.svgs :refer [svg]]
-   [reagent.core :as reagent :refer [atom create-class]]
-   [reagent.dom :as rdom]))
+ (ns ^:figwheel-hooks minesweeper-clojure.core
+   (:require
+    [clojure.string :refer [join]]
+    [goog.dom :as gdom]
+    [minesweeper-clojure.svgs :refer [svg]]
+    [reagent.core :as reagent :refer [atom create-class]]
+    [reagent.dom :as rdom]))
 
 ;; state creation helpers
 
@@ -24,35 +24,27 @@
    :is-top-edge (< i x-dim)
    :is-bottom-edge (>= i (- (* x-dim y-dim) x-dim))})
 
-(defn neighbor-indices
-  "Given an index and dims, return the immediate neighbor indices."
+(defn adjacent-indices
+  "Given an index and dims, return a vec of adjacent indices."
   [i x-dim y-dim]
-  (let [{:keys [is-left-edge is-right-edge is-top-edge is-bottom-edge]} (edges i x-dim y-dim)]
-    {:left-i (if (not is-left-edge) (dec i) nil)
-     :right-i (if (not is-right-edge) (inc i) nil)
-     :top-i (if (not is-top-edge) (- i x-dim) nil)
-     :bottom-i (if (not is-bottom-edge) (+ i x-dim) nil)}))
-
-(defn adjacents
-  "Given an index, mines, and dims, determine the number of adjacent mines."
-  [i mines x-dim y-dim]
   (let [{:keys [is-left-edge is-right-edge is-top-edge is-bottom-edge]} (edges i x-dim y-dim)
-        {:keys [left-i right-i top-i bottom-i]} (neighbor-indices i x-dim y-dim)
-        left (if (not is-left-edge) (nth mines left-i) nil)
-        right (if (not is-right-edge) (nth mines right-i) nil)
-        top (if (not is-top-edge) (nth mines top-i) nil)
-        bottom (if (not is-bottom-edge) (nth mines bottom-i) nil)
-        top-left (if (and (not is-left-edge) (not is-top-edge)) (nth mines (- (dec i) x-dim)) nil)
-        top-right (if (and (not is-right-edge) (not is-top-edge)) (nth mines (- (inc i) x-dim)) nil)
-        bottom-left (if (and (not is-left-edge) (not is-bottom-edge)) (nth mines (+ (dec i) x-dim)) nil)
-        bottom-right (if (and (not is-right-edge) (not is-bottom-edge)) (nth mines (+ (inc i) x-dim)) nil)]
-    [top-left top top-right left right bottom-left bottom bottom-right]))
+        left-i (when (not is-left-edge) (dec i))
+        right-i (when (not is-right-edge) (inc i))
+        top-i (when (not is-top-edge) (- i x-dim))
+        bottom-i (when (not is-bottom-edge) (+ i x-dim))
+        top-left-i (when (and (not is-left-edge) (not is-top-edge)) (- (dec i) x-dim))
+        top-right-i (when (and (not is-right-edge) (not is-top-edge)) (- (inc i) x-dim))
+        bottom-left-i (when (and (not is-left-edge) (not is-bottom-edge)) (+ (dec i) x-dim))
+        bottom-right-i (when (and (not is-right-edge) (not is-bottom-edge)) (+ (inc i) x-dim))]
+    (->> [left-i right-i top-i bottom-i top-left-i top-right-i bottom-left-i bottom-right-i]
+         (filter #(not (nil? %))))))
 
 (defn num-adjacent-mines
   "Given an index, mines, and dims, determine the number of adjacent mines."
   [i mines x-dim y-dim]
-  (let [adjacent-mines (adjacents i mines x-dim y-dim)]
-    (reduce + adjacent-mines)))
+  (->> (adjacent-indices i x-dim y-dim)
+       (map #(nth mines %))
+       (reduce +)))
 
 (defn gen-board
   "Create a vec of square maps,
@@ -71,7 +63,7 @@
 
 (def has-initially-loaded (atom false))
 (def dims (atom {:x-dim 10 :y-dim 10}))
-(def difficulty (atom 6)) ;; there will be 1 mine per <difficulty> squares
+(def difficulty (atom 10)) ;; there will be 1 mine per <difficulty> squares; TODO change to number-of-mines-total
 (def board (atom (gen-board (:x-dim @dims) (:y-dim @dims) @difficulty)))
 (def is-game-active (atom true))
 
@@ -98,29 +90,21 @@
   (reset! is-game-active false))
 
 (defn reveal!
-  "Reveal what's under the square, then conditionally (1) end game or
-  (2) recursively reveal! the blank adjacent left/right/top/bottom squares."
+  "Expose contents, then conditionally (1) end game or
+  (2) recursively reveal adjacent non-mine squares."
   [i]
   (let [x-dim (:x-dim @dims) y-dim (:y-dim @dims)
-        {:keys [left-i right-i top-i bottom-i]} (neighbor-indices i x-dim y-dim)
-        {:keys [is-mine num-adjacent-mines]} (@board i)]
+        {:keys [is-mine num-adjacent-mines]} (@board i)
+        is-blank (and (zero? is-mine) (zero? num-adjacent-mines))]
     (do
       (swap! board assoc-in [i :is-revealed] true)
-      (cond (pos? is-mine) (game-over!) ;; (1) end game
-            (and (zero? is-mine) (zero? num-adjacent-mines)) ;; (2) recursively reveal! the blank adjacent left/right/top/bottom squares
-            (do
-              (when (not (nil? left-i))
-                (let [{:keys [is-revealed is-mine num-adjacent-mines]} (@board left-i)]
-                  (when (and (zero? is-mine) (false? is-revealed) (zero? num-adjacent-mines)) (reveal! left-i))))
-              (when (not (nil? right-i))
-                (let [{:keys [is-revealed is-mine num-adjacent-mines]} (@board right-i)]
-                  (when (and (zero? is-mine) (false? is-revealed) (zero? num-adjacent-mines)) (reveal! right-i))))
-              (when (not (nil? top-i))
-                (let [{:keys [is-revealed is-mine num-adjacent-mines]} (@board top-i)]
-                  (when (and (zero? is-mine) (false? is-revealed) (zero? num-adjacent-mines)) (reveal! top-i))))
-              (when (not (nil? bottom-i))
-                (let [{:keys [is-revealed is-mine num-adjacent-mines]} (@board bottom-i)]
-                  (when (and (zero? is-mine) (false? is-revealed) (zero? num-adjacent-mines)) (reveal! bottom-i)))))))))
+      (cond
+        ;; (1) end game
+        (pos? is-mine) (game-over! i)
+        ;; (2) recursively reveal adjacent non-mine squares
+        is-blank (doseq [x (adjacent-indices i x-dim y-dim)]
+                   (let [{:keys [is-revealed is-mine num-adjacent-mines]} (@board x)]
+                     (when (false? is-revealed) (reveal! x))))))))
 
 (defn main []
   (letfn [(keyboard-listeners [e]
