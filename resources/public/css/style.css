@@ -83,6 +83,9 @@ body {
 .square.is-revealed {
   background: white;
 }
+.square.is-mine.is-mistake {
+  background: red;
+}
 .square-inner {
   position: absolute;
   line-height: 0;

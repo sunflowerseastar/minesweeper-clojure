@@ -54,6 +54,7 @@
     (->> (map-indexed
           (fn [i x] {:is-flag false
                      :is-mine x
+                     :is-mistake false
                      :num-adjacent-mines (num-adjacent-mines i mines-vec x-dim y-dim)
                      :is-revealed false})
           mines-vec)
@@ -83,11 +84,12 @@
 
 (defn game-over!
   "Reveal mines, end gameplay."
-  []
+  [i]
   ;; TODO reveal all mines
-  ;; TODO color the game-ending square red
   ;; TODO show incorrect flags
-  (reset! is-game-active false))
+  (do
+    (swap! board assoc-in [i :is-mistake] true)
+    (reset! is-game-active false)))
 
 (defn reveal!
   "Expose contents, then conditionally (1) end game or
@@ -125,10 +127,12 @@
                               ;; :on-click #(when (not @is-game-active) (start-game!))
                               }
             (doall (map-indexed
-                    (fn [i {:keys [is-flag is-mine is-revealed num-adjacent-mines]}]
+                    (fn [i {:keys [is-flag is-mine is-mistake is-revealed num-adjacent-mines]}]
                       ^{:key (str i)}
                       [:a.square
                        {:class [(when (not @is-game-active) "pointer-events-none")
+                                (when (pos? is-mine) "is-mine")
+                                (when is-mistake "is-mistake")
                                 (when is-revealed "is-revealed")
                                 (when is-flag "is-flag")]
                         :on-click #(reveal! i)
