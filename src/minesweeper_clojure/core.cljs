@@ -9,12 +9,12 @@
 ;; state creation helpers
 
 (defn gen-mines
-  "Create a vec of 'mines', eg. [0 0 1 0] for a 2x2 grid with '4' difficulty (viz. '1 in 4')"
+  "Create a vec of 'mines', ex. [0 0 1 0] for a 2x2 grid with '4' difficulty (viz. '1 in 4')"
   [x-dim y-dim difficulty]
   (let [num-squares (* x-dim y-dim)
-        num-mines (max (quot num-squares difficulty) 1)]
-    (->> (concat (repeat num-mines 1) (repeat (- num-squares num-mines) 0))
-         shuffle)))
+        num-mines (max (quot num-squares difficulty) 1)] ;; make sure there's at least 1 mine
+    (->> (concat (repeat num-mines 1) (repeat (- num-squares num-mines) 0)) ;; => ex. [1 0 0 0]
+         shuffle))) ;; => ex. [0 0 1 0]
 
 (defn edges
   "Given an index and dims, determine if/where it's on the board's border."
