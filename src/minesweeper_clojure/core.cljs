@@ -63,10 +63,12 @@
          vec)))
 
 ;; state
+;; TODO add timer
+;; TODO add happy face
 
 (def has-initially-loaded (atom false))
 (def dims (atom {:x-dim 10 :y-dim 10}))
-(def num-mines-total (atom 1))
+(def num-mines-total (atom 10))
 (def board (atom (gen-board (:x-dim @dims) (:y-dim @dims) @num-mines-total)))
 (def is-game-active (atom true))
 
@@ -81,16 +83,14 @@
   (do (reset! is-game-active true)
       (reset! board (gen-board (:x-dim @dims) (:y-dim @dims) @num-mines-total))))
 
-;; TODO add timer
-;; TODO add happy face
-
 (defn game-over!
-  "Reveal mines, end gameplay."
+  "Mark game-ending mine as the 'mistake' (red), reveal mines, end gameplay."
+  ;; TODO indicate incorrect flags
   [i]
-  ;; TODO reveal all mines
-  ;; TODO show incorrect flags
   (do
     (swap! board assoc-in [i :is-mistake] true)
+    (doseq [mine-i (->> @board (keep-indexed #(if (:is-mine %2) %1)))]
+      (swap! board assoc-in [mine-i :is-revealed] true))
     (reset! is-game-active false)))
 
 (defn reveal!
