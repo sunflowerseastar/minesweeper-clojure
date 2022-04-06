@@ -36,6 +36,22 @@ body {
     padding: 1em 0;
   }
 }
+.above-board {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5em 0;
+}
+.above-board .left,
+.above-board .right {
+  min-width: 100px;
+}
+.above-board .center {
+  flex: 1;
+  text-align: center;
+}
+.above-board .right {
+  text-align: right;
+}
 .board {
   position: relative;
   width: 100%;

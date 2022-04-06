@@ -66,14 +66,22 @@
          vec)))
 
 ;; state
-;; TODO add timer
-;; TODO add happy face
 
 (def has-initially-loaded (atom false))
 (def dims (atom {:x-dim 20 :y-dim 16}))
 (def num-mines-total (atom 40))
+;; (def dims (atom {:x-dim 2 :y-dim 2}))
+;; (def num-mines-total (atom 3))
 (def board (atom (gen-board (:x-dim @dims) (:y-dim @dims) @num-mines-total)))
-(def is-game-active (atom true))
+(def gameplay-state (atom 'active)) ;; active | win | lose
+(defonce tick-interval (atom 0))
+(defonce seconds-elapsed (atom 0))
+
+(defn tick! []
+  (swap! seconds-elapsed inc))
+
+(defn start-tick-interval! []
+  (reset! tick-interval (js/setInterval #(tick!) 1000)))
 
 (defn toggle-flag!
   "Add or remove a flag on a square."
@@ -81,14 +89,23 @@
   (swap! board update-in [i :is-flag] not))
 
 (defn start-game!
-  "Reset board and permit gameplay."
+  "Recreate randomized-mines board based on UI state, (2) reset gameplay
+  state, (3) reset the count-up timer's state to 0, (4) restart the JS timer
+  that triggers the timer."
   []
-  (do (reset! is-game-active true)
-      (reset! board (gen-board (:x-dim @dims) (:y-dim @dims) @num-mines-total))))
+  (do
+    ;; (1) generate a new board
+    (reset! board (gen-board (:x-dim @dims) (:y-dim @dims) @num-mines-total))
+    ;; (2) permit gameplay
+    (reset! gameplay-state 'active)
+    ;; (3) put the timer back at 0
+    (reset! seconds-elapsed 0)
+    ;; (4) restart the JS interval that controls the count-up timer
+    (start-tick-interval!)))
 
 (defn game-over-lose!
   "(1) Mark game-ending mine as 'final' (red), (2) mark incorrect flags as
-  'mistake' (X), (3) reveal mines, (4) end gameplay."
+  'mistake' (X), (3) reveal mines, (4) end gameplay state, (5) stop timer."
   [i]
   (do
     ;; (1) make the game-ending square turn red (background, via class -> css)
@@ -100,10 +117,13 @@
     (doseq [mine-i (->> @board (keep-indexed #(if (and (:is-mine %2) (not (:is-flag %2))) %1)))]
       (swap! board assoc-in [mine-i :is-revealed] true))
     ;; (4) end gameplay
-    (reset! is-game-active false)))
+    (reset! gameplay-state 'lose)
+    ;; (5) clear JS tick-interval that triggers count-up timer
+    (js/clearInterval @tick-interval)))
 
 (defn game-over-win! []
-  (do (println "win =)") (reset! is-game-active false)))
+  (do (println "win =)") (reset! gameplay-state 'win)
+      (js/clearInterval @tick-interval)))
 
 (defn reveal!
   "(1) Expose contents, then conditionally (2) end game due to mine, (3) end game
@@ -135,20 +155,29 @@
       (fn [] (do
                (.addEventListener js/window "contextmenu" #(.preventDefault %))
                (.addEventListener js/document "keydown" keyboard-listeners)
+               (start-tick-interval!)
                (js/setTimeout #(reset! has-initially-loaded true) 0)))
       :reagent-render
       (fn [this]
         [:div.main {:class (if @has-initially-loaded "has-initially-loaded")}
          [:div.board-container
+          [:div.above-board.constrain-width
+           [:div.left
+            [:span (max (- @num-mines-total (->> @board (filter :is-flag) count)) 0)]]
+           [:div.center
+            [:span {:on-click #(when (not (= @gameplay-state 'active)) (start-game!))}
+             (cond (= @gameplay-state 'win) "B)"
+                   (= @gameplay-state 'lose) "=("
+                   :else "=)")]]
+           [:div.right
+            [:span @seconds-elapsed]]]
           [:div.board.constrain-width
-           [:div.board-inner {:style {:grid-template-columns (join " " (repeat (:x-dim @dims) "1fr"))}
-                              ;; :on-click #(when (not @is-game-active) (start-game!))
-                              }
+           [:div.board-inner {:style {:grid-template-columns (join " " (repeat (:x-dim @dims) "1fr"))}}
             (doall (map-indexed
                     (fn [i {:keys [is-final is-flag is-mine is-mistake is-revealed num-adjacent-mines]}]
                       ^{:key (str i)}
                       [:a.square
-                       {:class [(when (not @is-game-active) "pointer-events-none")
+                       {:class [(when (not= @gameplay-state 'active) "pointer-events-none")
                                 (when is-final "is-final")
                                 (when is-flag "is-flag")
                                 (when is-mine "is-mine")
