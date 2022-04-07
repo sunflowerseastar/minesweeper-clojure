@@ -90,6 +90,13 @@ body {
   top: -2px;
   bottom: -2px;
   background: linear-gradient(to bottom left, #f3f3f3, #eee);
+  transition: opacity 1.6s ease-in-out;
+}
+.board.lose:before {
+  background: linear-gradient(to bottom left, #ffcfdf, #ff8c94);
+}
+.board.win:before {
+  background: linear-gradient(to bottom left, #e3f1db, #9cc985);
 }
 .board-inner {
   position: relative;

@@ -188,7 +188,7 @@
                    :else "=)")]]
            [:div.right
             [:span @seconds-elapsed]]]
-          [:div.board.constrain-width
+          [:div.board.constrain-width {:class @gameplay-state}
            [:div.board-inner {:style {:grid-template-columns (join " " (repeat (:x-dim @dims) "1fr"))}
                               :class (when (not= @gameplay-state 'active) "pointer-events-none")}
             (doall (map-indexed
