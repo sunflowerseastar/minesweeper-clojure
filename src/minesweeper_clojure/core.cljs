@@ -6,6 +6,25 @@
     [reagent.core :as reagent :refer [atom create-class]]
     [reagent.dom :as rdom]))
 
+(defonce colors {:lavender "#d0d0ff"
+                 :orange "#ffd3ad"
+                 :green "#9cc985"
+                 :pink "#ffbad1"
+                 :red "#ff8c94"
+                 :blue "#7cafcf"
+                 :yellow "#faedb9"})
+
+(defn color [n]
+  (cond (= n 1) (:blue colors)
+        (= n 2) (:green colors)
+        (= n 3) (:pink colors)
+        (= n 4) (:red colors)
+        (= n 5) (:orange colors)
+        (= n 6) (:pink colors)
+        (= n 7) (:blue colors)
+        (= n 8) (:green colors)
+        (= n 9) (:red colors)))
+
 ;; state creation helpers
 
 (defn gen-mines
@@ -68,10 +87,8 @@
 ;; state
 
 (def has-initially-loaded (atom false))
-(def dims (atom {:x-dim 20 :y-dim 16}))
-(def num-mines-total (atom 40))
-;; (def dims (atom {:x-dim 2 :y-dim 2}))
-;; (def num-mines-total (atom 3))
+(def dims (atom {:x-dim 16 :y-dim 12}))
+(def num-mines-total (atom 20))
 (def board (atom (gen-board (:x-dim @dims) (:y-dim @dims) @num-mines-total)))
 (def gameplay-state (atom 'active)) ;; active | win | lose
 (defonce tick-interval (atom 0))
@@ -186,7 +203,7 @@
                         :on-click #(reveal! i)
                         :on-context-menu #(toggle-flag! i)}
                        [:span.square-3d-cover [:span.square-3d-top]]
-                       [:span.square-inner
+                       [:span.square-inner {:style {:color (color num-adjacent-mines)}}
                         (cond is-revealed (if is-mine (svg 'mine)
                                               (when (not (zero? num-adjacent-mines)) num-adjacent-mines))
                               is-flag (svg 'flag))]])

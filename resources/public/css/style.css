@@ -8,6 +8,22 @@ body {
   touch-action: manipulation;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
+  font-size: 13px;
+}
+@media (min-width: 400px) {
+  body {
+    font-size: 14px;
+  }
+}
+@media (min-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+}
+@media (min-width: 1200px) {
+  body {
+    font-size: 18px;
+  }
 }
 #app {
   height: 100vh;
@@ -29,7 +45,7 @@ body {
 
 .board-container {
   width: 90vw;
-  margin: 0 auto;
+  margin: -2em auto 0; /* offset .above-board padding-bottom */
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -43,7 +59,8 @@ body {
 .above-board {
   display: flex;
   justify-content: space-between;
-  padding: 0.5em 0;
+  padding-bottom: 1em; /* offset by .board-container top margin */
+  color: #333;
 }
 .above-board .left,
 .above-board .right {
@@ -60,6 +77,8 @@ body {
   position: relative;
   width: 100%;
   margin: 0 auto;
+  font-weight: bold;
+  text-shadow: 1px 1px 0px #ededed, 0 0 20px #fff;
   text-align: center;
   border: 3px solid #f1f1f1;
 }
@@ -135,7 +154,7 @@ body {
   transform: rotate(-45deg) translateX(-50%) translateY(-50%);
 }
 .square.is-mine.is-final {
-  background: red;
+  background: #ff8c94; /* red */
 }
 
 .square-inner {
