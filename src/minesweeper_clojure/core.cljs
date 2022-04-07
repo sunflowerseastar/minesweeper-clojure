@@ -172,15 +172,15 @@
            [:div.right
             [:span @seconds-elapsed]]]
           [:div.board.constrain-width
-           [:div.board-inner {:style {:grid-template-columns (join " " (repeat (:x-dim @dims) "1fr"))}}
+           [:div.board-inner {:style {:grid-template-columns (join " " (repeat (:x-dim @dims) "1fr"))}
+                              :class (when (not= @gameplay-state 'active) "pointer-events-none")}
             (doall (map-indexed
                     (fn [i {:keys [is-final is-flag is-mine is-mistake is-revealed num-adjacent-mines]}]
                       ^{:key (str i)}
                       [:a.square
-                       {:class [(when (not= @gameplay-state 'active) "pointer-events-none")
-                                (when is-final "is-final")
+                       {:class [(when is-final "is-final")
                                 (when is-flag "is-flag")
-                                (when is-mine "is-mine")
+                                (when (and is-revealed is-mine) "is-mine")
                                 (when is-mistake "is-mistake")
                                 (when is-revealed "is-revealed")]
                         :on-click #(reveal! i)
