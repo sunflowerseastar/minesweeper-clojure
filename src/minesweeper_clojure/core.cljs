@@ -185,6 +185,7 @@
                                 (when is-revealed "is-revealed")]
                         :on-click #(reveal! i)
                         :on-context-menu #(toggle-flag! i)}
+                       [:span.square-3d-cover [:span.square-3d-top]]
                        [:span.square-inner
                         (cond is-revealed (if is-mine (svg 'mine)
                                               (when (not (zero? num-adjacent-mines)) num-adjacent-mines))
