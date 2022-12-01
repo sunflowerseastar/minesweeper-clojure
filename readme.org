@@ -1,0 +1,9 @@
+* Minesweeper
+
+This is a simple web version of Minesweeper, written with [[https://reagent-project.github.io/][Reagent]].
+
+#+begin_src sh
+lein fig:build # dev - localhost:9500
+lein fig:min   # build
+lein fig:test  # test
+#+end_src
