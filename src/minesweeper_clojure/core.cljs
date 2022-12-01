@@ -58,7 +58,7 @@
          (filter #(not (nil? %))))))
 
 (defn bool->int
-  "Helper to convert false -> 0 and true -> 0."
+  "Helper to convert false -> 0 and true -> 1."
   [b] (get {false 0 true 1} b))
 
 (defn num-adjacent-mines
